@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neon Snake | Pro Edition</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+    <div id="game-container">
+        <div id="ui-overlay" class="glass-menu">
+            <h1 class="neon-text">NEON SNAKE</h1>
+            <div class="stats">
+                <p>SCORE: <span id="current-score">0</span></p>
+                <p>HIGH SCORE: <span id="high-score">0</span></p>
+            </div>
+            <button id="start-btn">INITIALIZE CORE</button>
+        </div>
+        <canvas id="game-canvas"></canvas>
+    </div>
+
+    <div class="custom-cursor"></div>
+
+    <script src="script.js"></script>
+</body>
+</html>
