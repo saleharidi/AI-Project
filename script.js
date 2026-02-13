@@ -78,6 +78,9 @@ class NeonSnakeEngine {
         this.highScore = parseInt(localStorage.getItem('snakeHighScore')) || 0;
         this.shield = false;
         this.tickRate = this.baseTickRate;
+        // Lovable
+        this.frozen = false;
+
 
         // Clickup AI
         // NEW: reset obstacles
@@ -95,11 +98,11 @@ class NeonSnakeEngine {
 
         // Decide food type (rare special foods)
         const roll = Math.random();
-        let type = 'apple';
-        if (roll < 0.09) type = 'bomb';
-        else if (roll < 0.17) type = 'lightning'; 
-        else if (roll < 0.20) type = 'shield'; 
-        else if (roll < 0.30) type = 'grape';  
+        let type = 'shield';
+        /* if (roll < 0.09) type = 'bomb';
+        else if (roll < 0) type = 'lightning';
+        else if (roll < 0.1) type = 'shield';
+        else if (roll < 0) type = 'grape'; */
 
 
         while (isInvalid) {
@@ -264,6 +267,12 @@ class NeonSnakeEngine {
     }
 
     updatePhysics() {
+        // 1) If frozen, do nothing this tick
+        if (this.frozen) {
+            return;
+        }
+
+        // 2) Normal movement
         this.dir = this.nextDir;
         const head = {
             x: this.snake[0].x + this.dir.x,
@@ -278,21 +287,18 @@ class NeonSnakeEngine {
 
         const hitSelf = this.snake.some(s => s.x === head.x && s.y === head.y);
 
-        // Clickup AI
-        // NEW: obstacle collision
+        // Obstacle collision
         const hitObstacle = this.obstacles.some(o => o.x === head.x && o.y === head.y);
-        // Check if bomb exploded on the grid
-        // Check if bomb should disappear
+
+        // Bomb auto-despawn
         if (this.food.type === 'bomb') {
             const now = performance.now();
             if (now - this.food.spawnTime >= this.food.explodeAfter) {
-                // Bomb just disappears
-                this.food = this.spawnFood(); // spawn new food
+                this.food = this.spawnFood();
             }
         }
 
-
-        // chatgpt code edited by Clickup
+        // 3) Handle collisions
         if (hitWall || hitSelf || hitObstacle) {
             if (this.shield) {
                 // Shield crash → explode + revive
@@ -302,7 +308,6 @@ class NeonSnakeEngine {
                     '#00fff0'
                 );
                 this.triggerShake(0.9);
-
                 this.shield = false;
 
                 // Reset snake but keep score
@@ -310,6 +315,13 @@ class NeonSnakeEngine {
                 this.dir = { x: 1, y: 0 };
                 this.nextDir = { x: 1, y: 0 };
                 this.food = this.spawnFood();
+
+                // Freeze for 2 seconds after revive
+                this.frozen = true;
+                setTimeout(() => {
+                    this.frozen = false;
+                }, 2000);
+
                 return;
             } else {
                 this.triggerShake(0.8);
@@ -323,7 +335,7 @@ class NeonSnakeEngine {
             }
         }
 
-
+        // 4) Advance snake
         this.snake.unshift(head);
 
         if (head.x === this.food.x && head.y === this.food.y) {
@@ -333,6 +345,7 @@ class NeonSnakeEngine {
             this.snake.pop();
         }
 
+        // 5) Particles & trauma
         this.particles = this.particles.filter(p => {
             p.update();
             return p.life > 0;
@@ -340,7 +353,6 @@ class NeonSnakeEngine {
 
         if (this.trauma > 0) this.trauma -= 0.05;
     }
-
 
 
     handleFoodEffect(type) {
@@ -398,6 +410,14 @@ class NeonSnakeEngine {
                     this.dir = { x: 1, y: 0 };
                     this.nextDir = { x: 1, y: 0 };
                     this.food = this.spawnFood();
+
+                    // Freeze for 2 seconds after revive
+                    this.frozen = true;
+                    setTimeout(() => {
+                        this.frozen = false;
+                    }, 2000);
+
+                    break;
                 } else {
                     // No shield → game over instantly
                     this.createExplosion(
@@ -409,7 +429,6 @@ class NeonSnakeEngine {
                     this.gameOver();
                 }
                 break;
-
 
             default: // apple
                 this.score += 10;
@@ -448,12 +467,31 @@ class NeonSnakeEngine {
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // === DRAW SNAKE ===
+        const isFrozen = this.frozen; // use this to pulse when frozen
+
         this.snake.forEach((segment, index) => {
             const x = segment.x * this.cellSize + this.cellSize / 2;
             const y = segment.y * this.cellSize + this.cellSize / 2;
-            const radius = this.cellSize * 0.45;
+            const baseRadius = this.cellSize * 0.45;
 
-            this.ctx.shadowBlur = 20;
+            // Pulse factors when frozen
+            let radius = baseRadius;
+            let alpha = 1;
+
+            if (isFrozen) {
+                const t = performance.now() / 1000;
+                // Pulse between 0.7 and 1.0
+                const pulse = 0.7 + 0.3 * (Math.sin(t * 6) + 1) / 2;
+                radius = baseRadius * pulse;
+                alpha = 0.6 + 0.4 * pulse; // slightly fade in/out
+            }
+
+            this.ctx.save();
+
+            // Apply alpha
+            this.ctx.globalAlpha = alpha;
+
+            this.ctx.shadowBlur = isFrozen ? 30 : 20;
             this.ctx.shadowColor = '#00f2ff';
 
             const grad = this.ctx.createRadialGradient(x, y, radius * 0.2, x, y, radius);
@@ -465,6 +503,7 @@ class NeonSnakeEngine {
             this.ctx.arc(x, y, radius, 0, Math.PI * 2);
             this.ctx.fill();
 
+            // Head eyes
             if (index === 0) {
                 this.ctx.shadowBlur = 0;
                 this.ctx.fillStyle = '#000';
@@ -479,7 +518,10 @@ class NeonSnakeEngine {
                 this.ctx.arc(x + eyeOffset, y - eyeOffset, eyeRadius, 0, Math.PI * 2);
                 this.ctx.fill();
             }
+
+            this.ctx.restore();
         });
+
 
         // clickup
         // === DRAW OBSTACLES ===
