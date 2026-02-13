@@ -98,11 +98,11 @@ class NeonSnakeEngine {
 
         // Decide food type (rare special foods)
         const roll = Math.random();
-        let type = 'shield';
-        /* if (roll < 0.09) type = 'bomb';
-        else if (roll < 0) type = 'lightning';
-        else if (roll < 0.1) type = 'shield';
-        else if (roll < 0) type = 'grape'; */
+        let type = 'apple';
+        if (roll < 0.09) type = 'bomb';
+        else if (roll < 0.185) type = 'lightning';
+        else if (roll < 0.21) type = 'shield';
+        else if (roll < 0.184) type = 'grape';
 
 
         while (isInvalid) {
@@ -121,56 +121,6 @@ class NeonSnakeEngine {
         return newFood;
 
 
-    }
-
-    // Increase difficulty based on score
-    updateDifficulty() {
-        // Every 50 points, increase max obstacles by 1, up to 15
-        const level = Math.floor(this.score / 50);
-        this.maxObstacles = Math.min(3 + level, 15);
-    }
-
-    // Check if a cell is occupied by the snake or food or another obstacle
-    isCellBlocked(x, y) {
-        // snake
-        if (this.snake.some(s => s.x === x && s.y === y)) return true;
-
-        // food
-        if (this.food && this.food.x === x && this.food.y === y) return true;
-
-        // obstacles
-        if (this.obstacles.some(o => o.x === x && o.y === y)) return true;
-
-        return false;
-    }
-
-    // Distance from snake head (Manhattan distance)
-    headDistance(x, y) {
-        const head = this.snake[0];
-        return Math.abs(head.x - x) + Math.abs(head.y - y);
-    }
-
-    // Try to spawn one new obstacle in a safe random spot
-    spawnSingleObstacle() {
-        let attempts = 0;
-        while (attempts < 50) {
-            const x = Math.floor(Math.random() * this.grid.x);
-            const y = Math.floor(Math.random() * this.grid.y);
-
-            if (this.isCellBlocked(x, y)) {
-                attempts++;
-                continue;
-            }
-
-            // Don’t spawn too close to the snake head
-            if (this.headDistance(x, y) < this.obstacleMinDistance) {
-                attempts++;
-                continue;
-            }
-
-            this.obstacles.push({ x, y });
-            return;
-        }
     }
 
     // Clickup AI
@@ -229,11 +179,6 @@ class NeonSnakeEngine {
         // Add obstacles until we reach maxObstacles
         while (this.obstacles.length < this.maxObstacles) {
             this.spawnSingleObstacle();
-        }
-
-        // OPTIONAL: you can also remove extra obstacles if maxObstacles drops
-        if (this.obstacles.length > this.maxObstacles) {
-            this.obstacles.length = this.maxObstacles;
         }
     }
 
